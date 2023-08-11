@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vod
+spec:
+  selector:
+    matchLabels:
+      app: vod
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: vod
+    spec:
+      containers:
+        - name: vod
+          image: <IMAGE>
+          ports:
+            - containerPort: 3000
+      imagePullSecrets:
+        - name: fabs

@@ -1,0 +1,3 @@
+# Exclude development-related files and directories
+node_modules
+

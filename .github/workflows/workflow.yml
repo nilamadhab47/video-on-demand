@@ -1,0 +1,46 @@
+# Pipeline name
+name: Deploy to DigitalOcean Kubernetes
+
+# Trigger on push event on the main branch
+on:
+  push:
+    branches:
+      - IHV-53
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      # Step 2: Install doctl
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      # Step 3: Builds the Docker image and pushes it to your container registry
+      - name: Build container image
+        run: docker build -t registry.digitalocean.com/fabs/vod:$(echo $GITHUB_SHA | head -c7) .
+
+      - name: Log in to DigitalOcean Container Registry with short-lived credentials
+        run: doctl registry login --expiry-seconds 1200
+
+      - name: Push image to DigitalOcean Container Registry
+        run: docker push registry.digitalocean.com/fabs/vod:$(echo $GITHUB_SHA | head -c7)
+
+      # Step 4: Update deployment file with latest commit tag
+      - name: Update deployment file
+        run: TAG=$(echo $GITHUB_SHA | head -c7) && sed -i 's|<IMAGE>|registry.digitalocean.com/fabs/vod:'${TAG}'|' $GITHUB_WORKSPACE/deployments/production/deployment.yaml
+
+      # Step 5: Deploys to k8s
+      - name: Save DigitalOcean kubeconfig with short-lived credentials
+        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 600 k8s-fabs
+
+      - name: Deploy Kubernetes manifests
+        run: |
+          kubectl apply -f deployments/production/deployment.yaml
+          kubectl apply -f services/production/service.yaml

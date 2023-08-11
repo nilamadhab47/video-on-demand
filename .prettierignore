@@ -1,0 +1,8 @@
+**/.git
+**/.svn
+**/.hg
+**/node_modules
+**/.history
+**/.next
+**/postcss.config.js
+**/next.config.js
